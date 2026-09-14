@@ -1,4 +1,4 @@
-"""Compare the same small filtering/grouping task in Pandas and Polars."""
+# Repeat the Treasury filtering and grouping in Pandas and Polars.
 
 from pathlib import Path
 from statistics import median
@@ -44,18 +44,18 @@ if __name__ == "__main__":
     pd_filtered, pd_yearly = pandas_analysis(pandas_data)
     pl_filtered, pl_yearly = polars_analysis(polars_data)
 
-    # Verify matching dates and statistics before comparing speed.
+    # Check that both versions give the same results.
     assert pd_filtered["date"].dt.date.tolist() == pl_filtered["date"].to_list()
     pd.testing.assert_frame_equal(
         pd_yearly, pd.DataFrame(pl_yearly.to_dicts()),
         check_dtype=False, check_exact=False, rtol=1e-10, atol=1e-10,
     )
-    print(f"MATCH: {len(pd_filtered)} filtered dates and all yearly statistics")
+    print(f"Results match: {len(pd_filtered)} filtered dates and the yearly summary")
     print(pd_yearly.round(4).to_string(index=False))
     print(f"\nPandas {pd.__version__} | Polars {pl.__version__}")
-    print("Median of 5 batches, each with 100 runs; milliseconds per run.")
-    print("Includes cleaning, new columns, filtering, grouping, and sorting.")
-    print("Excludes CSV reading, validation, printing, plotting, and ML.")
+    print("Timing: 5 batches of 100 runs, median time per run.")
+    print("Timed: dropping missing values, new columns, filtering, grouping, sorting.")
+    print("CSV loading, result checks, printing, plotting, and ML are not timed.")
     for name, operation, data in [
         ("Pandas", pandas_analysis, pandas_data),
         ("Polars", polars_analysis, polars_data),

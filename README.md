@@ -1,18 +1,14 @@
-# Treasury Yield Analysis — IDS 706
+# IDS 706: Treasury Yield Analysis
 
-This beginner project uses Pandas to inspect U.S. Treasury yields, filter inverted dates, summarize by year, create one chart, and try a simple linear regression.
+I picked Treasury yields because I wanted a small dataset related to bonds. My main question was how the 2-year and 10-year yields changed between 2023 and 2025, especially when the 2-year yield was higher.
 
-## Data
+## Data and setup
 
-Source: [Federal Reserve GSW nominal yield curve data](https://www.federalreserve.gov/data/nominal-yield-curve.htm) ([original CSV](https://www.federalreserve.gov/data/yield-curve-tables/feds200628.csv)).
+Source: [Federal Reserve GSW yield curve data](https://www.federalreserve.gov/data/nominal-yield-curve.htm) ([CSV](https://www.federalreserve.gov/data/yield-curve-tables/feds200628.csv)). The file in `data/` contains 783 dates from 2023–2025 and five yield columns: 1, 2, 5, 10, and 30 years.
 
-The included `data/treasury_yields_2023_2025.csv` has **783 rows and 6 columns**: a date and 1-, 2-, 5-, 10-, and 30-year zero-coupon yields, covering 2023–2025. Each row is one date listed in the source. Yields use annualized percentages: `4.25` means 4.25%.
+These are fitted, continuously compounded zero-coupon yields. Values are annual percentages: `4.25` means 4.25%. The Fed can revise the source, so the copy used here is included, with source details in `data/source_metadata.json`.
 
-These are fitted, continuously compounded yields from a Fed staff research dataset, which may be revised. The included subset comes from a source downloaded on 2026-09-08. Source metadata is retained in `data/source_metadata.json`.
-
-## Run
-
-Use Python 3.10 or newer. From this folder:
+Use Python 3.10 or newer. From the project folder:
 
 ```sh
 python3 -m venv .venv
@@ -22,13 +18,13 @@ python analysis.py
 python compare_polars.py
 ```
 
-`analysis.py` prints the results and saves a chart in `figures/`. `compare_polars.py` checks the Pandas/Polars results and prints timing comparisons. Both run offline after installing the dependencies.
+The scripts print the results, and `analysis.py` saves the plot in `figures/`. No data download is needed.
 
-## Analysis and findings
+## Data checks and findings
 
-**Import and inspect.** `pd.read_csv(..., parse_dates=["date"])` reads the data. The script uses `.head()`, `.shape`, `.info()`, `.describe()`, `.isna().sum()`, and `.duplicated()`. There are **749 complete rows**, **34 rows missing all five yields**, and **no duplicate rows or dates**. The original CSV retains missing values. Calculations exclude rows missing the required yields, without filling them.
+I loaded the CSV with Pandas, parsed the dates, and checked `head()`, `info()`, `describe()`, shape, missing values, and duplicates. There are 749 complete rows, 34 rows missing all five yields, and no duplicate rows or dates. The CSV is unchanged; each calculation drops rows missing the yields it needs.
 
-**Filter and group.** Define the spread as `yield_10y - yield_2y`. A negative spread means the 10-year yield is below the 2-year yield, an inversion between these maturities. The script combines two conditions to find inverted dates in 2023, then uses `groupby("year").agg(...)` to calculate counts and average spreads.
+I calculated `spread = yield_10y - yield_2y`. A negative spread means the 2-year yield is higher. Filtering for negative spreads in 2023 returned 250 dates. I then used `groupby("year").agg(...)` to compare years:
 
 | Year | Valid dates | Mean spread (percentage points) | Inverted dates |
 | --- | ---: | ---: | ---: |
@@ -36,56 +32,43 @@ python compare_polars.py
 | 2024 | 250 | -0.1288 | 165 |
 | 2025 | 249 | 0.5458 | 0 |
 
-The mean spread changed from negative in 2023 to positive in 2025. Inversion occurred on every valid date in 2023, on 165 dates in 2024, and on no valid dates in 2025.
+The 2-year yield was higher on every valid date in 2023, less often in 2024, and on none in 2025. I used a line plot to show when the yields changed order. Shading marks inversion, and missing values remain gaps.
 
-**Visualization.** A line chart shows how the two yields change over time. Orange is the 2-year yield, blue is the 10-year yield, and shading marks inversion. Missing observations remain gaps. Shared axes make it easy to compare the yields and see their ordering change during 2024.
+![2-year and 10-year Treasury yields](figures/treasury_yields_2023_2025.png)
 
-![2-year and 10-year Treasury yields with shaded inversions](figures/treasury_yields_2023_2025.png)
+## Linear regression
 
-**Machine learning.** The algorithm is scikit-learn's `LinearRegression`, which fits a straight-line relationship between an input and a numerical target.
+I tried `LinearRegression` with the current 10-year yield as the input and the next observed 10-year yield as the target. After sorting and dropping missing values, `shift(-1)` creates the target. The final row has no target, so it is removed. “Next observed” is not always the next calendar day.
 
-- **Input X:** current 10-year yield, one feature.
-- **Target y:** next observed 10-year yield, created with `.shift(-1)`.
-- **Preparation:** sort dates, exclude missing observations, and remove the final row because it has no future target.
-- **Split:** 499 training samples with target dates in 2023–2024; 249 test samples with target dates in 2025. Splitting by the target date keeps 2025 outcomes out of training.
-- **Evaluation:** test mean absolute error (**MAE**) is **0.0404 percentage points**. MAE measures the average size of the prediction error; lower is better. The script also prints five actual and predicted values.
+The split uses the target date: 2023–2024 for training (499 samples), and 2025 for testing (249 samples). This keeps 2025 target values out of training.
 
-The model is fitted once and predicts the next observation using the current observed yield. This is a basic learning exercise on a small historical sample; the error alone does not establish useful forecasting skill.
+Test MAE was **0.0404 percentage points**, about 4 basis points. This is the average absolute prediction error. The script also prints five actual and predicted values. I have not compared the model with simply using the current yield as the next prediction, so this error alone does not show whether the regression adds value.
 
-## Pandas and Polars comparison
+## Pandas vs. Polars
 
-[`compare_polars.py`](compare_polars.py) imports the same CSV with both libraries, removes missing 2-year/10-year yields, creates the spread and year columns, filters inverted dates in 2023, and calculates the same yearly summary. It checks that the **250 filtered dates match** and that all yearly statistics agree within floating-point tolerance.
+`compare_polars.py` repeats the filtering and yearly summary in both libraries. The 250 filtered dates match, and the yearly statistics agree within floating-point tolerance.
 
-| Operation | Pandas | Polars |
-| --- | --- | --- |
-| Remove missing yields | `dropna(subset=[...])` | `drop_nulls(subset=[...])` |
-| Create a column | `df["spread"] = ...` | `with_columns((...).alias("spread"))` |
-| Filter rows | `df[(condition1) & (condition2)]` | `filter((condition1) & (condition2))` |
-| Summarize by year | `groupby("year").agg(...)` | `group_by("year").agg(...)` |
+In Polars, `drop_nulls()` replaces `dropna()`, `with_columns()` adds columns using expressions such as `pl.col("yield_10y")`, and `group_by()` replaces `groupby()`. Filtering uses `.filter(condition)` instead of Pandas' `df[condition]`.
 
-Pandas uses column indexing and assignment here; Polars uses expressions such as `pl.col("yield_10y")` inside `with_columns`, `filter`, and `agg`. See the [Polars grouping documentation](https://docs.pola.rs/api/python/stable/reference/dataframe/api/polars.DataFrame.group_by.html) for the expression syntax.
+After a warm-up, I timed 5 batches of 100 runs and took the median batch time divided by 100. Timing covers dropping missing values, creating columns, filtering, grouping, and sorting. CSV loading and result checks are outside the timer.
 
-**Timing method:** after a warm-up, run each complete cleaning/filtering/grouping function 100 times per batch for 5 batches. Report the median batch time divided by 100. CSV loading, result checks, printing, plotting, and ML are outside the timing. Both libraries start with the same 783-row dataset already loaded in memory and produce year-sorted summaries.
-
-| Library | Version | Sample runtime per run |
+| Library | Version | Example time per run |
 | --- | --- | ---: |
 | Pandas | 3.0.5 | 2.454 ms |
 | Polars | 1.44.2 | 1.057 ms |
 
-This run used Python 3.14.3 on an Apple Silicon Mac. Polars took less time in this small experiment, but both completed the operations in a few milliseconds. Timings vary with the machine and current load; this small dataset does not establish a general performance advantage.
+These results used Python 3.14.3 on an Apple Silicon Mac. Polars was faster in this run, but both took only a few milliseconds. The dataset is small, and timings vary between runs.
 
-## Rust notebook
+## Rust exercises
 
-[`rust_vs_python_intro.ipynb`](rust_vs_python_intro.ipynb) is adapted from [the course notebook](https://github.com/Kedar-V/data-processing-frameworks-demo/blob/75772a44ed1cbc61e66396fad49a9aa0c913c8ef/notebooks/rust_vs_python_intro.ipynb). Its lesson and exercises are retained, with completed **Your turn** cells and short experiment notes.
+`rust_vs_python_intro.ipynb` is based on the [course notebook](https://github.com/Kedar-V/data-processing-frameworks-demo/blob/75772a44ed1cbc61e66396fad49a9aa0c913c8ef/notebooks/rust_vs_python_intro.ipynb). I kept its movie-rating examples and added these experiments:
 
-| Experiment | Change and observed result |
-| --- | --- |
-| Mutability | Added `mut`: the value changes from 1000 to 2000. The immutable version raises E0384. |
-| Ownership and cloning | Moving a vector and reusing its original name raises E0382. Appending to a `.clone()` changes the copy and leaves the original unchanged. |
-| Borrowing | Two shared references can read the vector; a later mutable reference can append a value. |
-| Borrow conflict | Changed the loop to `for rating in &ratings` to demonstrate E0502, matching the lesson's explanation. A working version writes to a separate vector and removes both 2s. |
-| Optional scope example | Changed 64 MB to 16 MB; `Drop` prints `FREE 16 MB` when the inner scope ends. |
+- Added `mut` so the cutoff could change from 1000 to 2000.
+- Added a value to a cloned vector and checked that the original stayed unchanged.
+- Used two shared references, followed by a mutable reference that added a value.
+- Changed the removal loop to borrow with `&ratings`. After the borrowing error, a working version writes to a separate vector and removes both 2s.
+- Changed the optional buffer to 16 MB and checked that `Drop` ran at the end of the inner scope.
 
-All **17 code cells were executed with the Rust kernel**: 14 ran normally and 3 intentionally produced the compiler errors above. Their actual outputs are saved in the notebook. Those three marked error cells are part of the experiments; continue to the following working cells after reading them.
+All 17 code cells have saved outputs. Three intentionally fail: immutable assignment (E0384), using a moved value (E0382), and conflicting borrows (E0502). The other 14 run normally.
 
-To rerun, open the notebook in VS Code with the Jupyter extension and choose **Rust** as the kernel. Rust and the kernel are already installed on this computer. For a new computer, follow the [course Rust setup instructions](https://github.com/Kedar-V/data-processing-frameworks-demo/blob/master/SETUP.md). The notebook uses small built-in examples and does not read the MovieLens dataset.
+Choose the **Rust** kernel to rerun the notebook and continue past the error examples. The [course setup guide](https://github.com/Kedar-V/data-processing-frameworks-demo/blob/master/SETUP.md) covers installation. No MovieLens files are needed.
