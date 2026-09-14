@@ -61,14 +61,12 @@ These results used Python 3.14.3 on an Apple Silicon Mac. Polars was faster in t
 
 ## Rust exercises
 
-`rust_vs_python_intro.ipynb` is based on the [course notebook](https://github.com/Kedar-V/data-processing-frameworks-demo/blob/75772a44ed1cbc61e66396fad49a9aa0c913c8ef/notebooks/rust_vs_python_intro.ipynb). I kept its movie-rating examples and added these experiments:
+`rust_vs_python_intro.ipynb` is adapted from the [course notebook](https://github.com/Kedar-V/data-processing-frameworks-demo/blob/75772a44ed1cbc61e66396fad49a9aa0c913c8ef/notebooks/rust_vs_python_intro.ipynb). It has three short experiments:
 
-- Added `mut` so the cutoff could change from 1000 to 2000.
-- Added a value to a cloned vector and checked that the original stayed unchanged.
-- Used two shared references, followed by a mutable reference that added a value.
-- Changed the removal loop to borrow with `&ratings`. After the borrowing error, a working version writes to a separate vector and removes both 2s.
-- Changed the optional buffer to 16 MB and checked that `Drop` ran at the end of the inner scope.
+- **Mutability:** change a cutoff from 1000 to 2000 by adding `mut`.
+- **Ownership:** try using a moved vector, then use `clone()` and check that changing the copy leaves the original alone.
+- **Borrowing:** try removing values while reading a vector, then fix the conflict by writing to a separate vector.
 
-All 17 code cells have saved outputs. Three intentionally fail: immutable assignment (E0384), using a moved value (E0382), and conflicting borrows (E0502). The other 14 run normally.
+All six code cells were executed and have saved outputs. Three intentionally show compiler errors (E0384, E0382, E0502), each followed by a working version and a short explanation.
 
-Choose the **Rust** kernel to rerun the notebook and continue past the error examples. The [course setup guide](https://github.com/Kedar-V/data-processing-frameworks-demo/blob/master/SETUP.md) covers installation. No MovieLens files are needed.
+Choose the **Rust** kernel and continue past the error examples when rerunning. The [course setup guide](https://github.com/Kedar-V/data-processing-frameworks-demo/blob/master/SETUP.md) covers installation. No data files are needed for this notebook.
