@@ -1,0 +1,34 @@
+{
+  "source_page": "https://www.federalreserve.gov/data/nominal-yield-curve.htm",
+  "source_url": "https://www.federalreserve.gov/data/yield-curve-tables/feds200628.csv",
+  "source_sha256": "813fc140725c0695d60da5309aacecc8a88d88f8c61c09c6577b4044a62fcbac",
+  "subset_created_at_utc": "2026-09-12T02:02:05.260615+00:00",
+  "subset_file": "treasury_yields_2023_2025.csv",
+  "subset_sha256": "a9194d02971f04696e1be3a27ea2ae4d90c50a2833a69de100179e6c09f071d3",
+  "requested_start": "2023-01-01",
+  "requested_end": "2025-12-31",
+  "actual_start": "2023-01-02",
+  "actual_end": "2025-12-31",
+  "source_to_subset_columns": {
+    "Date": "date",
+    "SVENY01": "yield_1y",
+    "SVENY02": "yield_2y",
+    "SVENY05": "yield_5y",
+    "SVENY10": "yield_10y",
+    "SVENY30": "yield_30y"
+  },
+  "yield_units": "percent per year; continuously compounded zero-coupon yields",
+  "rows": 783,
+  "complete_rows": 749,
+  "missing_values_per_column": {
+    "date": 0,
+    "yield_1y": 34,
+    "yield_2y": 34,
+    "yield_5y": 34,
+    "yield_10y": 34,
+    "yield_30y": 34
+  },
+  "duplicate_dates": 0,
+  "missing_value_policy": "Preserved as empty cells; no imputation or row removal.",
+  "version_note": "Fed staff research estimates may be revised. Use the bundled subset for reproducibility."
+}
