@@ -14,6 +14,12 @@ DATA_PATH = BASE_DIR / "data" / "treasury_yields_2023_2025.csv"
 PLOT_PATH = BASE_DIR / "figures" / "treasury_yields_2023_2025.png"
 
 
+def load_data(path=DATA_PATH):
+    data = pd.read_csv(path)
+    data["date"] = pd.to_datetime(data["date"])
+    return data.sort_values("date").reset_index(drop=True)
+
+
 def inspect_data(data):
     print("First five rows\n", data.head())
     print("\nRows and columns:", data.shape)
@@ -42,7 +48,7 @@ def filter_and_group(data):
         inverted_days=("inverted", "sum"),
     )
     print("\nYearly summary\n", yearly.round(4))
-    return yearly
+    return filtered, yearly
 
 
 def plot_yields(data):
@@ -66,16 +72,21 @@ def plot_yields(data):
     print("\nPlot saved to:", PLOT_PATH)
 
 
-def train_model(data):
+def prepare_model_samples(data):
     # Pair each yield with the next available observation.
     samples = data[["date", "yield_10y"]].dropna().sort_values("date").copy()
     samples["next_yield_10y"] = samples["yield_10y"].shift(-1)
     samples["target_date"] = samples["date"].shift(-1)
-    samples = samples.dropna()  # No target for the final row.
+    return samples.dropna()  # No target for the final row.
 
+
+def train_model(data):
+    samples = prepare_model_samples(data)
     # Keep all 2025 target values in the test set.
     train = samples[samples["target_date"] < "2025-01-01"]
     test = samples[samples["target_date"] >= "2025-01-01"]
+    if train.empty or test.empty:
+        raise ValueError("Need both training and test samples around the 2025 cutoff.")
     model = LinearRegression()
     model.fit(train[["yield_10y"]], train["next_yield_10y"])
     predictions = model.predict(test[["yield_10y"]])
@@ -91,7 +102,7 @@ def train_model(data):
 
 
 if __name__ == "__main__":
-    data = pd.read_csv(DATA_PATH, parse_dates=["date"]).sort_values("date")
+    data = load_data()
     inspect_data(data)
     filter_and_group(data)
     plot_yields(data)

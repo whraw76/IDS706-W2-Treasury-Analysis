@@ -1,5 +1,7 @@
 # IDS 706: Treasury Yield Analysis
 
+[![Tests](https://github.com/whraw76/IDS706-W2-Treasury-Analysis/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/whraw76/IDS706-W2-Treasury-Analysis/actions/workflows/tests.yml)
+
 I picked Treasury yields because I wanted a small dataset related to bonds. My main question was how the 2-year and 10-year yields changed between 2023 and 2025, especially when the 2-year yield was higher.
 
 ## Data and setup
@@ -8,7 +10,7 @@ Source: [Federal Reserve GSW yield curve data](https://www.federalreserve.gov/da
 
 These are fitted, continuously compounded zero-coupon yields. Values are annual percentages: `4.25` means 4.25%. The Fed can revise the source, so the copy used here is included, with source details in `data/source_metadata.json`.
 
-Use Python 3.10 or newer. From the project folder:
+The tests use Python 3.14 locally and in GitHub Actions. From the project folder:
 
 ```sh
 python3 -m venv .venv
@@ -16,9 +18,49 @@ source .venv/bin/activate
 python -m pip install -r requirements.txt
 python analysis.py
 python compare_polars.py
+python -m pytest -v
 ```
 
 The scripts print the results, and `analysis.py` saves the plot in `figures/`. No data download is needed.
+
+## Testing and reproducibility
+
+For the second part of the project, I added pytest tests and GitHub Actions. I moved CSV loading and the next-observation calculation into separate functions so I could check them directly. The analysis still uses the same data and model.
+
+There are **8 unit test cases and 1 system test**:
+
+| File | What it checks |
+| --- | --- |
+| `tests/test_analysis.py` | Dates and missing values when loading; a missing file; filtered dates and yearly statistics; next-observation targets; model predictions and MAE; missing training or test data; agreement between Pandas and Polars. |
+| `tests/test_system.py` | Runs the full analysis script in a temporary folder with the bundled CSV. Checks the filtered count, train/test sizes, MAE, a readable nonblank PNG, and that the CSV was not changed. |
+
+The unit tests use small examples where I can work out the answers by hand. For example, the training pairs `1 -> 2` and `2 -> 3` should give `y = x + 1`. Large values in the 2025 test data check that those future targets do not leak into training. Other cases check missing yields, a zero spread, unsorted dates, and an empty train/test split.
+
+Run all tests with `python -m pytest -v`. To run them separately:
+
+```sh
+python -m pytest tests/test_analysis.py -v
+python -m pytest tests/test_system.py -v
+```
+
+The workflow in `.github/workflows/tests.yml` runs the same tests on pushes and pull requests. It uses Ubuntu and Python 3.14, installs `requirements.txt`, and runs pytest. It can also be started manually from the Actions tab. The badge above links to the workflow results.
+
+The dataset is included in the repository, and tests create temporary files rather than changing the saved analysis outputs. Package names remain unpinned in `requirements.txt`, so future installs may use newer versions; the Actions installation log records what was installed for each run. The Rust notebook is retained from the first assignment and is not part of the Python test suite.
+
+Project files:
+
+```text
+analysis.py
+compare_polars.py
+data/
+figures/
+tests/test_analysis.py
+tests/test_system.py
+pytest.ini
+requirements.txt
+.github/workflows/tests.yml
+rust_vs_python_intro.ipynb
+```
 
 ## Data checks and findings
 
