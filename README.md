@@ -54,6 +54,7 @@ analysis.py
 compare_polars.py
 data/
 figures/
+docs/screenshots/
 tests/test_analysis.py
 tests/test_system.py
 pytest.ini
@@ -61,6 +62,14 @@ requirements.txt
 .github/workflows/tests.yml
 rust_vs_python_intro.ipynb
 ```
+
+### Test results
+
+All **9 tests passed locally and in GitHub Actions**. These screenshots show [the successful run on September 22, 2026](https://github.com/whraw76/IDS706-W2-Treasury-Analysis/actions/runs/35777158458) for commit `3059b80`.
+
+![GitHub Actions run completed successfully](docs/screenshots/ci-summary.png)
+
+![All nine pytest tests passed in GitHub Actions](docs/screenshots/ci-tests.png)
 
 ## Data checks and findings
 
