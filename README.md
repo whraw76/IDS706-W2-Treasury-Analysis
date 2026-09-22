@@ -27,14 +27,14 @@ The scripts print the results, and `analysis.py` saves the plot in `figures/`. N
 
 For the second part of the project, I added pytest tests and GitHub Actions. I moved CSV loading and the next-observation calculation into separate functions so I could check them directly. The analysis still uses the same data and model.
 
-There are **8 unit test cases and 1 system test**:
+There are **9 unit test cases and 1 system test**:
 
 | File | What it checks |
 | --- | --- |
-| `tests/test_analysis.py` | Dates and missing values when loading; a missing file; filtered dates and yearly statistics; next-observation targets; model predictions and MAE; missing training or test data; agreement between Pandas and Polars. |
+| `tests/test_analysis.py` | Dates and missing values when loading; a missing file; filtered dates and yearly statistics; plotted yields and missing gaps; next-observation targets; model predictions and MAE; missing training or test data; Pandas and Polars results against expected answers. |
 | `tests/test_system.py` | Runs the full analysis script in a temporary folder with the bundled CSV. Checks the filtered count, train/test sizes, MAE, a readable nonblank PNG, and that the CSV was not changed. |
 
-The unit tests use small examples where I can work out the answers by hand. For example, the training pairs `1 -> 2` and `2 -> 3` should give `y = x + 1`. Large values in the 2025 test data check that those future targets do not leak into training. Other cases check missing yields, a zero spread, unsorted dates, and an empty train/test split.
+The unit tests use small examples where I can work out the answers by hand. For example, the training pairs `1 -> 2` and `2 -> 3` should give `y = x + 1`. Large values in the 2025 test data check that those future targets do not leak into training. Other cases check missing yields, a zero spread, inverted dates outside 2023, unsorted dates, and an empty train/test split. Each library is checked against hand-calculated results, and the plot test checks the dates and yields behind both lines, including missing-value gaps.
 
 Run all tests with `python -m pytest -v`. To run them separately:
 
@@ -65,11 +65,11 @@ rust_vs_python_intro.ipynb
 
 ### Test results
 
-All **9 tests passed locally and in GitHub Actions**. These screenshots show [the successful run on September 22, 2026](https://github.com/whraw76/IDS706-W2-Treasury-Analysis/actions/runs/35777158458) for commit `3059b80`.
+All **10 tests passed locally and in GitHub Actions**. These screenshots show [the successful run on September 22, 2026](https://github.com/whraw76/IDS706-W2-Treasury-Analysis/actions/runs/35778051939) for commit `731ada2`.
 
-![GitHub Actions run completed successfully](docs/screenshots/ci-summary.png)
+![GitHub Actions run completed successfully](docs/screenshots/ci-summary.jpg)
 
-![All nine pytest tests passed in GitHub Actions](docs/screenshots/ci-tests.png)
+![All ten pytest tests passed in GitHub Actions](docs/screenshots/ci-tests.jpg)
 
 ## Data checks and findings
 
