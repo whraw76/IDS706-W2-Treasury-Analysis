@@ -4,6 +4,7 @@ import pandas as pd
 import polars as pl
 import pytest
 
+import analysis
 from analysis import filter_and_group, load_data, prepare_model_samples, train_model
 from compare_polars import pandas_analysis, polars_analysis
 
@@ -11,10 +12,13 @@ from compare_polars import pandas_analysis, polars_analysis
 @pytest.fixture
 def small_dataset():
     return pd.DataFrame({
-        "date": pd.to_datetime(["2023-12-28", "2023-12-29", "2024-01-02", "2024-01-03"]),
-        "yield_1y": [None, 4.0, 4.0, 4.0],
-        "yield_2y": [4.0, 4.0, 3.0, None],
-        "yield_10y": [3.0, 4.0, 4.0, 5.0],
+        "date": pd.to_datetime([
+            "2023-12-27", "2023-12-28", "2023-12-29",
+            "2024-01-02", "2024-01-03", "2024-01-04", "2024-01-05",
+        ]),
+        "yield_1y": [None, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0],
+        "yield_2y": [4.0, 4.0, 3.0, 3.0, 5.0, None, 4.0],
+        "yield_10y": [3.0, 4.0, 4.0, 4.0, 3.0, 5.0, None],
     })
 
 
@@ -40,14 +44,33 @@ def test_filter_and_group_handles_missing_and_zero_spreads(small_dataset):
 
     filtered, yearly = filter_and_group(small_dataset)
 
-    assert filtered["date"].tolist() == [pd.Timestamp("2023-12-28")]
-    assert yearly.loc[2023, "observations"] == 2
-    assert yearly.loc[2023, "mean_spread_pp"] == pytest.approx(-0.5)
+    assert filtered["date"].tolist() == [pd.Timestamp("2023-12-27")]
+    assert filtered["spread"].tolist() == pytest.approx([-1.0])
+    assert yearly.loc[2023, "observations"] == 3
+    assert yearly.loc[2023, "mean_spread_pp"] == pytest.approx(0.0)
     assert yearly.loc[2023, "inverted_days"] == 1  # A zero spread is not inverted.
-    assert yearly.loc[2024, "observations"] == 1
-    assert yearly.loc[2024, "mean_spread_pp"] == pytest.approx(1.0)
-    assert yearly.loc[2024, "inverted_days"] == 0
+    assert yearly.loc[2024, "observations"] == 2
+    assert yearly.loc[2024, "mean_spread_pp"] == pytest.approx(-0.5)
+    assert yearly.loc[2024, "inverted_days"] == 1  # Inverted, but outside the filter year.
     pd.testing.assert_frame_equal(small_dataset, original)
+
+
+def test_plot_uses_both_yields_and_keeps_missing_gaps(small_dataset, tmp_path, monkeypatch):
+    # Keep access to the real axes so we can check the plotted data.
+    fig, ax = analysis.plt.subplots()
+    monkeypatch.setattr(analysis.plt, "subplots", lambda **kwargs: (fig, ax))
+    monkeypatch.setattr(analysis, "PLOT_PATH", tmp_path / "yields.png")
+
+    analysis.plot_yields(small_dataset)
+
+    lines = {line.get_label(): line for line in ax.get_lines()}
+    assert set(lines) == {"2-year yield", "10-year yield"}
+    for label, column in [("2-year yield", "yield_2y"), ("10-year yield", "yield_10y")]:
+        assert pd.to_datetime(lines[label].get_xdata()).tolist() == small_dataset["date"].tolist()
+        pd.testing.assert_series_equal(
+            pd.Series(lines[label].get_ydata()), small_dataset[column], check_names=False,
+        )
+    assert ax.get_ylabel() == "Annualized yield (%)"
 
 
 def test_model_samples_use_next_observation_after_missing_dates():
@@ -88,17 +111,28 @@ def test_model_requires_both_training_and_test_samples(start):
         train_model(data)
 
 
-def test_polars_matches_pandas_on_filtering_and_grouping():
+def test_pandas_and_polars_match_expected_filtering_and_grouping():
     values = {
-        "date": [datetime(2023, 1, 3), datetime(2023, 1, 4), datetime(2024, 1, 2)],
-        "yield_2y": [4.0, None, 3.0],
-        "yield_10y": [3.0, 4.0, 4.0],
+        "date": [
+            datetime(2023, 1, 3), datetime(2023, 1, 4), datetime(2023, 1, 5),
+            datetime(2024, 1, 2), datetime(2024, 1, 3), datetime(2024, 1, 4),
+        ],
+        "yield_2y": [4.0, 4.0, None, 3.0, 5.0, 4.0],
+        "yield_10y": [3.0, 4.0, 4.0, 4.0, 3.0, None],
     }
     pd_filtered, pd_yearly = pandas_analysis(pd.DataFrame(values))
     pl_filtered, pl_yearly = polars_analysis(pl.DataFrame(values))
 
-    assert pd_filtered["date"].tolist() == pl_filtered["date"].to_list()
-    pd.testing.assert_frame_equal(
-        pd_yearly, pd.DataFrame(pl_yearly.to_dicts()), check_dtype=False,
-        check_exact=False, rtol=1e-10, atol=1e-10,
-    )
+    expected_dates = [datetime(2023, 1, 3)]
+    assert pd_filtered["date"].tolist() == expected_dates
+    assert pl_filtered["date"].to_list() == expected_dates
+    # 2023 spreads are -1 and 0; 2024 spreads are +1 and -2.
+    expected_yearly = pd.DataFrame({
+        "year": [2023, 2024], "observations": [2, 2],
+        "mean_spread_pp": [-0.5, -0.5], "inverted_days": [1, 1],
+    })
+    for result in [pd_yearly, pd.DataFrame(pl_yearly.to_dicts())]:
+        pd.testing.assert_frame_equal(
+            result, expected_yearly, check_dtype=False,
+            check_exact=False, rtol=1e-10, atol=1e-10,
+        )
