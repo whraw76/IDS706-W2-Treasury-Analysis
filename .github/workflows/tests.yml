@@ -4,21 +4,53 @@ on:
   push:
   pull_request:
   workflow_dispatch:
+  schedule:
+    - cron: '17 13 * * 1'
 
 permissions:
   contents: read
 
 jobs:
   tests:
-    name: Python tests
+    name: Python ${{ matrix.python-version }}
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.13', '3.14']
     steps:
       - uses: actions/checkout@v6
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: '3.14'
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
       - name: Install dependencies
-        run: python -m pip install -r requirements.txt
+        run: python -m pip install -r requirements-dev.txt
+      - name: Check formatting
+        run: python -m black --check analysis.py compare_polars.py tests
+      - name: Lint
+        run: python -m flake8 analysis.py compare_polars.py tests
       - name: Run tests
         run: python -m pytest -v
+
+  docker:
+    name: Docker build and run
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build image
+        run: docker build -t treasury-analysis:ci .
+      - name: Test inside the container
+        run: docker run --rm treasury-analysis:ci python -m pytest -v
+      - name: Run analysis and check saved outputs
+        run: |
+          mkdir -p results
+          docker run --rm -v "$PWD/results:/app/results" treasury-analysis:ci
+          test -s results/treasury_yields_2023_2025.png
+          test -s results/forecast_mae.png
+          test -s results/model_comparison.csv
+          test -s results/predictions.csv
