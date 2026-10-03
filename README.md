@@ -35,6 +35,11 @@ Samples are split by **target date**: 499 training samples before January 1, 202
 
 Regression improves MAE by only about **0.024 basis points**, so the two forecasts are very similar in this test period. This result does not establish a useful trading strategy: there is no transaction-cost or statistical significance test. Fed estimates can be revised, so this saved snapshot does not establish what data were available on each historical date.
 
+After reviewing the results, I want to check whether the regression's small
+advantage remains when a different year is used for testing. The current result
+only covers 2025, so I would not assume it holds in other years. This is a
+follow-up question, not a check completed in this project.
+
 ![Forecast errors on identical dates](results/forecast_mae.png)
 
 The exact scores and individual forecasts are saved in [model_comparison.csv](results/model_comparison.csv) and [predictions.csv](results/predictions.csv). One percentage point equals 100 basis points; “next observed” can span weekends or missing dates.
@@ -108,4 +113,4 @@ Docker Desktop screenshots show the completed analysis and test runs. “Exited 
 - `docs/screenshots/`: execution evidence; older CI screenshots show the previous ten-test version.
 - `rust_vs_python_intro.ipynb`: the earlier mutability, ownership and borrowing exercises, adapted from the [course notebook](https://github.com/Kedar-V/data-processing-frameworks-demo/blob/75772a44ed1cbc61e66396fad49a9aa0c913c8ef/notebooks/rust_vs_python_intro.ipynb), including intentional errors followed by fixes. It uses a Rust kernel and is outside the Python test suite.
 
-AI assistance: Codex helped with the refactoring, tests, documentation, and the suggestion to compare regression against an unchanged-yield baseline.
+AI assistance: Codex helped with the refactoring, tests, documentation, and the suggestion to compare regression against an unchanged-yield baseline. Codex also suggested follow-up questions; I chose to focus on testing a different year.
