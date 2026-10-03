@@ -64,11 +64,17 @@ Dependencies are unpinned. The saved dataset and Docker image support reruns, bu
 
 Previously, `train_model()` prepared samples, split dates, fitted the model, evaluated it, and printed results. These steps are now separate functions so the date split and evaluation can be tested directly. The Pandas comparison also reuses `filter_and_group()` instead of repeating the calculation. An output-directory argument lets the same script save results locally or through a Docker volume.
 
+The [refactoring commit](https://github.com/whraw76/IDS706-W2-Treasury-Analysis/commit/cbdc8fcc5f39c2d852b1667da4e1eaa2f5cd216c) shows the changes. In this GitHub screenshot, the repeated Pandas calculation on the left is replaced by a call to the shared function on the right.
+
+<img src="docs/screenshots/refactoring-diff.png" alt="GitHub before-and-after diff showing the shared Pandas function" width="900">
+
 The suite has **24 unit cases and one system test**. It covers valid and invalid inputs, missing observations, the train/test date boundary, forecast errors and units, Pandas/Polars agreement, and plotted values. The system test runs the script from another folder, checks the saved forecasts and both images, and confirms the input CSV is unchanged.
 
 On October 2, 2026, all **25 tests passed locally on Python 3.13 and 3.14, and inside the Docker image**. Black and flake8 also passed.
 
-The updated CI workflow tests Python 3.13 and 3.14 on Ubuntu, checks formatting/linting, and separately builds and runs Docker. It triggers on pushes, pull requests, manual runs and Mondays at 13:17 UTC. The new workflow still needs verification on GitHub after publication; the badge currently reflects the published branch.
+The CI workflow tests Python 3.13 and 3.14 on Ubuntu, checks formatting/linting, and separately builds and runs Docker. It triggers on pushes, pull requests, manual runs and Mondays at 13:17 UTC. All three jobs passed in [this GitHub Actions run](https://github.com/whraw76/IDS706-W2-Treasury-Analysis/actions/runs/37085982134).
+
+<img src="docs/screenshots/part-a-ci.png" alt="Passing GitHub Actions jobs for Python 3.13, Python 3.14, and Docker" width="900">
 
 ## Docker
 
@@ -103,5 +109,3 @@ Docker Desktop screenshots show the completed analysis and test runs. “Exited 
 - `rust_vs_python_intro.ipynb`: the earlier mutability, ownership and borrowing exercises, adapted from the [course notebook](https://github.com/Kedar-V/data-processing-frameworks-demo/blob/75772a44ed1cbc61e66396fad49a9aa0c913c8ef/notebooks/rust_vs_python_intro.ipynb), including intentional errors followed by fixes. It uses a Rust kernel and is outside the Python test suite.
 
 AI assistance: Codex helped with the refactoring, tests, documentation, and the suggestion to compare regression against an unchanged-yield baseline.
-
-Before final submission, publish and verify the new CI run, and add the required GitHub commit-diff screenshot for the refactoring.
