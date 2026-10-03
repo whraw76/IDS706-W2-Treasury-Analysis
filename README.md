@@ -113,4 +113,4 @@ Docker Desktop screenshots show the completed analysis and test runs. “Exited 
 - `docs/screenshots/`: execution evidence; older CI screenshots show the previous ten-test version.
 - `rust_vs_python_intro.ipynb`: the earlier mutability, ownership and borrowing exercises, adapted from the [course notebook](https://github.com/Kedar-V/data-processing-frameworks-demo/blob/75772a44ed1cbc61e66396fad49a9aa0c913c8ef/notebooks/rust_vs_python_intro.ipynb), including intentional errors followed by fixes. It uses a Rust kernel and is outside the Python test suite.
 
-AI assistance: Codex helped with the refactoring, tests, documentation, and the suggestion to compare regression against an unchanged-yield baseline. Codex also suggested follow-up questions; I chose to focus on testing a different year.
+AI assistance: Codex helped with the refactoring, tests, documentation, and the suggestion to compare regression against an unchanged-yield baseline.
